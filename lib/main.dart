@@ -1,5 +1,32 @@
+import 'package:floor/floor.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:sqflite/sqflite.dart' as sqflite;
+//part 'database.g.dart';
+@entity
+class Task {
+  @primaryKey
+  final String taskTitle;
+  final String taskDescription;
+  final String taskStatus;
+  Task( this.taskTitle,this.taskDescription,this.taskStatus);
+}
+@dao
+abstract class TaskDao {
+  @Query('SELECT * FROM Task')
+  Future<List<Task>> findAllTask();
 
+  @Query('SELECT * FROM Task WHERE id = :id')
+  Stream<Task> findTaskById(int id);
+
+  @insert
+  Future<void> insertTask(Task task);
+}
+@Database(version: 1, entities: [Task])
+abstract class AppDatabase extends FloorDatabase {
+  TaskDao get taskDao;
+}
 void main() {
   runApp(MyApp());
 }
@@ -10,6 +37,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
+
+
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -26,7 +55,7 @@ class MyApp extends StatelessWidget {
         // closer together (more dense) than on mobile platforms.
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      home: MyHomePage(title: 'Project Management App'),
     );
   }
 }
@@ -45,22 +74,47 @@ class MyHomePage extends StatefulWidget {
 
   final String title;
 
+
+
   @override
   _MyHomePageState createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
+class _MyHomePageState extends State<MyHomePage > {
+List<Tasklist> tasklist=new List<Tasklist>();
+List<Tasklist> filtertasklist=new List<Tasklist>();
+  List<ListItem> _dropdownItems = [
+    ListItem(1, "all"),
+    ListItem(2, "todo"),
+    ListItem(3, "doing"),
+    ListItem(4, "done")
+  ];
+  List<DropdownMenuItem<ListItem>> _dropdownMenuItems;
+  ListItem _itemSelected;
+  void initState() {
+    super.initState();
+    _dropdownMenuItems = buildDropDownMenuItems(_dropdownItems);
+    _itemSelected = _dropdownMenuItems[1].value;
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      tasklist.add(new Tasklist('make sound', 'doing'));
+      tasklist.add(new Tasklist('make task', 'todo'));
+      filtertasklist.addAll(tasklist);
+      //filtertasklist=tasklist;
     });
+
+  }
+
+  List<DropdownMenuItem<ListItem>> buildDropDownMenuItems(List listItems) {
+    List<DropdownMenuItem<ListItem>> items = List();
+    for (ListItem listItem in listItems) {
+      items.add(
+        DropdownMenuItem(
+          child: Text(listItem.name),
+          value: listItem,
+        ),
+      );
+    }
+    return items;
   }
 
   @override
@@ -77,10 +131,88 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
+      body:Center(
         child: Column(
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.all(15.0),
+                child: Container(
+                  padding: const EdgeInsets.all(10.0),
+                  width: 400,
+                  decoration: BoxDecoration(
+                      color: Colors.cyanAccent,
+
+                      border: Border.all()),
+                  child: DropdownButtonHideUnderline(
+
+                    child: DropdownButton(
+                      hint: new Text("Select Status"),
+                        value: _itemSelected,
+                        items: _dropdownMenuItems,
+                        onChanged: (value )  {
+                          setState(() {
+                            _itemSelected=value;
+                            if(_itemSelected.name == "all"){
+                              filtertasklist.clear();
+                              filtertasklist.addAll(tasklist);
+                            }else{
+                             filtertasklist = tasklist
+                                .where((u) => (u.Status
+                                .contains(_itemSelected.name) ))
+                                .toList();}
+                          });
+                        }),
+                  ),
+                ),
+              ),
+
+              ListView.builder(
+
+                scrollDirection: Axis.vertical,
+                shrinkWrap: true,
+                itemCount: filtertasklist.length,
+                itemBuilder: (context, index) {
+
+                  return ListTile(
+
+                    title: Slidable(
+                      actionPane: SlidableDrawerActionPane(),
+                      actionExtentRatio: 0.25,
+                       child: Container(
+                         height: 100,
+                         padding: EdgeInsets.all(10.0),
+                         decoration: BoxDecoration(
+                         border: Border.all(color: Colors.black, width: 2, ),
+                          borderRadius: BorderRadius.circular(8),),
+                        child:Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                             Text(filtertasklist[index].name),
+                             Text(filtertasklist[index].Status),
+                      ],
+                    )
+                  ),
+                      secondaryActions: <Widget>[
+                      IconSlideAction(
+                        caption: 'More',
+                        color: Colors.black45,
+                        icon: Icons.more_horiz,
+                        onTap: () => _showSnackBar('More'),
+                      ),
+                      IconSlideAction(
+                        caption: 'Delete',
+                        color: Colors.red,
+                        icon: Icons.delete,
+                        onTap: () => _showSnackBar('Delete'),
+                      ),
+                    ],
+                  ));
+                },
+              ),
+
+            ],
+
           // Column is also a layout widget. It takes a list of children and
           // arranges them vertically. By default, it sizes itself to fit its
           // children horizontally, and tries to be as tall as its parent.
@@ -95,23 +227,48 @@ class _MyHomePageState extends State<MyHomePage> {
           // center the children vertically; the main axis here is the vertical
           // axis because Columns are vertical (the cross axis would be
           // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
-        ),
+        )
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
+    floatingActionButton: FloatingActionButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => SecondRoute()),
+        );
+      },
+      tooltip: 'Increment',
         child: Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
+  }
+
+  _showSnackBar(String s) {}
+}
+class ListItem {
+  int value;
+  String name;
+  ListItem(this.value, this.name);
+}
+class Tasklist {
+  String name;
+  String Status;
+  Tasklist(this.name, this.Status);
+}
+
+
+
+
+class SecondRoute extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Project Management App"),
+      ),
+      body: Center(
+        child: Column(
+      ),
+    ));
   }
 }

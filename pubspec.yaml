@@ -21,8 +21,11 @@ environment:
   sdk: ">=2.7.0 <3.0.0"
 
 dependencies:
+  filter_list: ^0.0.5
+  flutter_slidable: ^0.5.4
   flutter:
     sdk: flutter
+  floor: ^0.17.0
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -30,6 +33,8 @@ dependencies:
   cupertino_icons: ^1.0.0
 
 dev_dependencies:
+  floor_generator: ^0.17.0
+  build_runner: ^1.10.3
   flutter_test:
     sdk: flutter
 
