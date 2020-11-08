@@ -23,14 +23,24 @@ environment:
 dependencies:
   filter_list: ^0.0.5
   flutter_slidable: ^0.5.4
+  get: ^3.4.1
+  http:
+  google_fonts: ^1.1.0
+
+
   flutter:
     sdk: flutter
   floor: ^0.17.0
 
 
+
+
+
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.0
+
 
 dev_dependencies:
   floor_generator: ^0.17.0
