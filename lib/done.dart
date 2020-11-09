@@ -3,47 +3,69 @@ import 'package:flutter/material.dart';
 import 'package:graduationproject/Task.dart';
 import 'package:graduationproject/Task_dao.dart';
 import 'package:flutter/foundation.dart';
+
+import 'database.dart';
 //import 'package:get/get.dart';
 class done extends StatefulWidget {
+  Task task;
+  done({Key key, this.task}) : super(key: key);
   @override
   _MyAppState createState() => _MyAppState();
 }
 
 class _MyAppState extends State<done> {
-  List<ListItem> _dropdownItems = [
-    ListItem(1, "todo"),
-    ListItem(2, "doing"),
-    ListItem(3, "done"),
+  List<String> _dropdownItems = [
+    "todo",
+    "doing",
+     "done",
   ];
 
-  List<DropdownMenuItem<ListItem>> _dropdownMenuItems;
-  ListItem _itemSelected;
+  List<DropdownMenuItem<String>> _dropdownMenuItems;
+  String _itemSelected;
 
   void initState() {
     super.initState();
     _dropdownMenuItems = buildDropDownMenuItems(_dropdownItems);
-    _itemSelected = _dropdownMenuItems[1].value;
+
+setState(() {
+  if(widget.task.id==1)
+  _itemSelected = _dropdownMenuItems[0].value;
+  else
+    _itemSelected =widget.task.taskStatus ;
+  TaskTitle.text=widget.task.taskTitle;
+  TaskDescription.text=widget.task.taskDescription;
+});
   }
 
-  List<DropdownMenuItem<ListItem>> buildDropDownMenuItems(List listItems) {
-    List<DropdownMenuItem<ListItem>> items = List();
-    for (ListItem listItem in listItems) {
+  List<DropdownMenuItem<String>> buildDropDownMenuItems(List listItems) {
+    List<DropdownMenuItem<String>> items = List();
+    for (String listItem in listItems) {
       items.add(
         DropdownMenuItem(
-          child: Text(listItem.name),
+          child: Text(listItem),
           value: listItem,
         ),
       );
     }
     return items;
   }
+  @override
+  void dispose() {
+    // Clean up the controller when the widget is removed from the
+    // widget tree.
+    TaskTitle.dispose();
+    TaskDescription.dispose();
+
+    super.dispose();
+  }
+  TaskDao taskDao ;
 TextEditingController TaskTitle = TextEditingController();
   TextEditingController TaskDescription = TextEditingController();
-  TextEditingController   TaskStatus = TextEditingController();
+  // TextEditingController   TaskStatus = TextEditingController();
   //TextEditingController TaskStatus  =TextEditingController();
   @override
   Widget build(BuildContext context) {
-    TaskDao taskDao ;
+
     // TaskTitle.text = task.taskTitle;
     // TaskDescription.text = task.taskDescription;
     return Scaffold(
@@ -62,8 +84,25 @@ TextEditingController TaskTitle = TextEditingController();
             textColor: Colors.white,
             color: Colors.blue,
                child: Text('done'),
-              onPressed: (){
-              taskDao.addTask(Task(TaskTitle.text, TaskTitle.text ,TaskStatus.text));
+              onPressed: () async{
+                final database = await $FloorTaskDatabase.databaseBuilder(
+                    'tasklist.db').build();
+                taskDao = database.taskDao;
+                widget.task.taskStatus=_itemSelected;
+                widget.task.taskTitle=TaskTitle.text;
+                widget.task.taskDescription=TaskDescription.text;
+
+                if (widget.task.id == 1) {
+                  widget.task.id =
+                      new DateTime.now().millisecondsSinceEpoch;
+                  await taskDao.addTask(widget.task);
+                }
+                else {
+                  await taskDao.updateNote(widget.task);
+                }
+
+                // var test=await noteDao.findAllNotes();
+                Navigator.of(context).pop(widget.task);
             },
           )),
           Padding(
@@ -123,9 +162,9 @@ TextEditingController TaskTitle = TextEditingController();
   }
 }
 
-class ListItem {
-  int value;
-  String name;
-
-  ListItem(this.value, this.name);
-}  
+// class ListItem {
+//   int value;
+//   String name;
+//
+//   ListItem(this.value, this.name);
+// }

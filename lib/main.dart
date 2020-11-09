@@ -6,6 +6,10 @@ import 'package:graduationproject/Task_dao.dart';
 import 'package:flutter/foundation.dart';
 // import 'package:get/get.dart';
 
+import 'Task.dart';
+import 'Task.dart';
+import 'Task.dart';
+import 'database.dart';
 import 'database.dart';
 import 'done.dart';
 
@@ -83,8 +87,8 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage > {
 
   // List<Tasklist> tasklist = new List<Tasklist>();
-  List<Task> Taskes = new List<Task>();
-  List<Task> tasklist = new List<Task>();
+  List<Task> filteredTasks = new List<Task>();
+  List<Task> allTasks = new List<Task>();
 
   //List<Tasklist> filtertasklist = new List<Tasklist>();
   List<ListItem> _dropdownItems = [
@@ -95,17 +99,16 @@ class _MyHomePageState extends State<MyHomePage > {
   ];
   List<DropdownMenuItem<ListItem>> _dropdownMenuItems;
   ListItem _itemSelected;
-
+  // List<Task> tasks = new List<Task>();
   void initState() {
     super.initState();
     _dropdownMenuItems = buildDropDownMenuItems(_dropdownItems);
-    _itemSelected = _dropdownMenuItems[1].value;
-    setState(() {
-     // tasklist.add(new Tasklist('make sound', 'doing'));
-      //tasklist.add(new Tasklist('make task', 'todo'));
-      Taskes.addAll(tasklist);
-      Taskes=tasklist;
-    });
+    _itemSelected = _dropdownMenuItems[0].value;
+    WidgetsBinding.instance
+        .addPostFrameCallback((_)async {
+      await refreshDatebase();
+    }
+    );
   }
 
   List<DropdownMenuItem<ListItem>> buildDropDownMenuItems(List listItems) {
@@ -157,31 +160,23 @@ class _MyHomePageState extends State<MyHomePage > {
                         onChanged: (value) {
                           setState(() {
                             _itemSelected = value;
-                            if (_itemSelected.name == "all") {
-                              Taskes.clear();
-                              Taskes.addAll(tasklist);
-                            } else {
-                              Taskes = tasklist
-                                  .where((u) =>
-                              (u.taskStatus
-                                  .contains(_itemSelected.name)))
-                                  .toList();
-                            }
+                            filterTasks();
                           });
                         }),
                   ),
                 ),
               ),
-             StreamBuilder<List<Task>>(
-                stream: taskDao.getAllTask(),
-                  builder: (context,  data){
-                if(data.hasData){
-                    Taskes = data.data;
-               return ListView.builder(
+             // StreamBuilder<List<Task>>(
+             //    stream: tasks,
+             //      builder: (context,  data){
+             //    if(data.hasData){
+             //        Taskes = data.data;
+                ListView.builder(
                 scrollDirection: Axis.vertical,
                 shrinkWrap: true,
-                itemCount: data.data.length,
+                itemCount: filteredTasks.length,
                 itemBuilder: (context,index) {
+                  final item = filteredTasks[index];
                   return ListTile(
                       title: Slidable(
                         actionPane: SlidableDrawerActionPane(),
@@ -199,9 +194,9 @@ class _MyHomePageState extends State<MyHomePage > {
                               children: <Widget>[
                                 //Text(filtertasklist[index].name),
                                 //Text(filtertasklist[index].Status),
-                                Text(data.data[index].taskTitle),
-                                Text(data.data[index].taskDescription),
-                                Text(data.data[index].taskStatus),
+                                Text('Title : ${item.taskTitle}'),
+                                Text('Description : ${item.taskDescription}'),
+                                Text('Status : ${item.taskStatus}'),
                               ],
                             )
                         ),
@@ -211,7 +206,7 @@ class _MyHomePageState extends State<MyHomePage > {
                             color: Colors.red,
                             icon: Icons.edit,
                             onTap: () {
-                              _showSnackBar('Edit');
+                              navigateToPage(item, context);
                             }
                           ),
                         ],
@@ -221,23 +216,31 @@ class _MyHomePageState extends State<MyHomePage > {
                             color: Colors.red,
                             icon: Icons.delete,
                             onTap: () {
-                              _showSnackBar('Delete');
-                              taskDao.deleteNote(data.data[index]);
+                              showAlertDialog(context, () {
+                                taskDao.deleteNote(item);
+                                setState(() {
+                                  filteredTasks.remove(item);
+                                  allTasks.remove(item);
+                                });
+
+                                Navigator.of(context).pop();
+                              });
+
                             }
                                 ),
                         ],
                       ));
                   }
-             );
-                  }
-                else if(data.hasError){
-                 return Text('Error');
-                   }
-                   else
-                return Text('Loading');
-
-                  }
-             ),
+             )//;
+                //   }
+                // else if(data.hasError){
+                //  return Text('Error');
+                //    }
+                //    else
+                // return Text('Loading');
+                //
+                //   }
+             // ),
                   ],
             // Column is also a layout widget. It takes a list of children and
             // arranges them vertically. By default, it sizes itself to fit its
@@ -257,14 +260,86 @@ class _MyHomePageState extends State<MyHomePage > {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => done()),
-          );
+          navigateToPage(new Task(1,"","",""), context);
         },
         tooltip: 'Increment',
         child: Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+
+  void filterTasks() {
+    if (_itemSelected.name == "all") {
+      filteredTasks.clear();
+      filteredTasks.addAll(allTasks);
+    } else {
+      filteredTasks = allTasks
+          .where((u) =>
+      (u.taskStatus
+          .contains(_itemSelected.name)))
+          .toList();
+      print('');
+    }
+  }
+  void navigateToPage(Task task,BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute<Task>(builder: (context) => done(task: task)),
+    ).then((value) async  {
+      setState(() async {
+        // if(value!=null)
+        // todolist.add(value);
+        await refreshDatebase();
+      });
+
+    });
+  }
+  var database;
+
+  Future refreshDatebase() async {
+    database = await $FloorTaskDatabase
+        .databaseBuilder('tasklist.db')
+        .build();
+    taskDao = database.taskDao;
+    List<Task> theTasks = await taskDao.getAllTask();
+    allTasks.clear();
+    setState(() {
+      allTasks.addAll(theTasks);
+      if (allTasks == null)
+        allTasks = new List<Task>();
+      filterTasks();
+    });
+
+
+  }
+  showAlertDialog(BuildContext context,VoidCallback deleteCallback) {
+
+    // Create button
+    Widget okButton = FlatButton(
+      child: Text("OK"),
+      onPressed: deleteCallback,
+    );
+    Widget cancel = FlatButton(
+      child: Text("Cancel"),
+      onPressed: () {
+        Navigator.of(context).pop();
+      },
+    );
+    // Create AlertDialog
+    AlertDialog alert = AlertDialog(
+      title: Text("Alert"),
+      content: Text("Are you sure you want to delete this task"),
+      actions: [
+        okButton,cancel
+      ],
+    );
+
+    // show the dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
     );
   }
   // _navigateToDetail(BuildContext context, Task task) async {

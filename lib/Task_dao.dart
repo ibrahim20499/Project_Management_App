@@ -3,8 +3,8 @@ import 'Task.dart';
 
 @dao
 abstract class TaskDao {
-  @Query('SELECT * FROM Tasklist')
-  Stream<List<Task>> getAllTask();
+  @Query('SELECT * FROM Task')
+  Future<List<Task>> getAllTask();
   @insert
   Future<void> addTask(Task task);
   @delete
