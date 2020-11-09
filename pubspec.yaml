@@ -27,7 +27,7 @@ dependencies:
   http:
   google_fonts: ^1.1.0
   floor: ^0.17.0
-
+  change_app_package_name: ^0.1.2
   flutter:
     sdk: flutter
 
