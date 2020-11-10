@@ -3,9 +3,8 @@ import 'package:floor/floor.dart';
 class Task {
   @PrimaryKey(autoGenerate : true)
    int id;
-   @ColumnInfo(name: 'taskTitle')
    String taskTitle;
    String taskDescription;
    String taskStatus;
-  Task( this.taskTitle,this.taskDescription,this.taskStatus, {this.id});
+  Task(this.id, this.taskTitle,this.taskDescription,this.taskStatus);
 }

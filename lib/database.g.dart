@@ -1,7 +1,7 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'database.dart';
-//
+
 // **************************************************************************
 // FloorGenerator
 // **************************************************************************
@@ -96,7 +96,7 @@ class _$TaskDatabase extends TaskDatabase {
 
 class _$TaskDao extends TaskDao {
   _$TaskDao(this.database, this.changeListener)
-      : _queryAdapter = QueryAdapter(database, changeListener),
+      : _queryAdapter = QueryAdapter(database),
         _taskInsertionAdapter = InsertionAdapter(
             database,
             'Task',
@@ -104,9 +104,8 @@ class _$TaskDao extends TaskDao {
                   'id': item.id,
                   'taskTitle': item.taskTitle,
                   'taskDescription': item.taskDescription,
-               //   'taskStatus': item.taskStatus
-                },
-            changeListener),
+                  'taskStatus': item.taskStatus
+                }),
         _taskUpdateAdapter = UpdateAdapter(
             database,
             'Task',
@@ -115,9 +114,8 @@ class _$TaskDao extends TaskDao {
                   'id': item.id,
                   'taskTitle': item.taskTitle,
                   'taskDescription': item.taskDescription,
-                //  'taskStatus': item.taskStatus
-                },
-            changeListener),
+                  'taskStatus': item.taskStatus
+                }),
         _taskDeletionAdapter = DeletionAdapter(
             database,
             'Task',
@@ -126,9 +124,8 @@ class _$TaskDao extends TaskDao {
                   'id': item.id,
                   'taskTitle': item.taskTitle,
                   'taskDescription': item.taskDescription,
-                  //'taskStatus': item.taskStatus
-                },
-            changeListener);
+                  'taskStatus': item.taskStatus
+                });
 
   final sqflite.DatabaseExecutor database;
 
@@ -143,13 +140,13 @@ class _$TaskDao extends TaskDao {
   final DeletionAdapter<Task> _taskDeletionAdapter;
 
   @override
-  Stream<List<Task>> getAllTask() {
-    return _queryAdapter.queryListStream('SELECT * FROM Tasklist',
-        queryableName: 'Task',
-        isView: false,
-        mapper: (Map<String, dynamic> row) => Task(row['taskTitle'] as String,
-            row['taskDescription'] as String,  row['taskStatus'] as String,
-            id: row['id'] as int));
+  Future<List<Task>> getAllTask() async {
+    return _queryAdapter.queryList('SELECT * FROM Task',
+        mapper: (Map<String, dynamic> row) => Task(
+            row['id'] as int,
+            row['taskTitle'] as String,
+            row['taskDescription'] as String,
+            row['taskStatus'] as String));
   }
 
   @override
